@@ -106,7 +106,7 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     memcpy(erl_buffer, buffer, size);
     stbi_image_free(buffer);
 
-    /* Return: {ok, {X, Y, Components, Binary}}. */
+    /* Return: {ok, {X, Y, NComponents, Binary}}. */
     result = enif_make_tuple2(env, mk_atom(env, "ok"),
             enif_make_tuple4(env,
                 enif_make_int(env, x),
