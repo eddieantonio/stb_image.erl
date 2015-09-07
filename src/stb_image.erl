@@ -3,6 +3,14 @@
 -on_load(init/0).
 
 -type req_comp() :: default | grey | grey_alpha | rgb | rgb_alpha.
+-type stb_image() :: {
+        X :: non_neg_integer(),
+        Y :: non_neg_integer(),
+        NComp :: non_neg_integer(),
+        Data :: binary()
+       }.
+-type load_return() :: {ok, stb_image()} |
+                       {error, Reason :: atom()}.
 
 % The name of the application we're writing. This is the name
 % used for the Erlang .app file.
@@ -24,7 +32,6 @@
 % A really nice person would make a pure Erlang fallback incase a NIF was
 % unable to load for a specific platform.
 
-%%
 load(Filename) -> load(Filename, []).
 
 load(Filename, Depth) when is_integer(Depth) or is_atom(Depth) ->
@@ -43,8 +50,10 @@ load(Filename, Options) ->
 % erlang:load_nif/2 matches the return specification for -on_load()
 % functions.
 
+-spec internal_load(Filename :: binary(), Depth :: non_neg_integer()) ->
+    load_return().
 internal_load(_Filename, _DesiredDepth) ->
-    not_loaded(?LINE).
+    erlang:nif_error({not_loaded, [{module, ?MODULE}, {line, ?LINE}]}).
 
 % https://github.com/nothings/stb/blob/master/stb_image.h#L394
 -spec req_comp(non_neg_integer() | req_comp()) -> non_neg_integer().
@@ -70,9 +79,3 @@ init() ->
             filename:join(Dir, ?LIBNAME)
     end,
     erlang:load_nif(SoName, 0).
-
-% This is just a simple placeholder. It mostly shouldn't ever be called
-% unless there was an unexpected error loading the NIF shared library.
-
-not_loaded(Line) ->
-    exit({not_loaded, [{module, ?MODULE}, {line, Line}]}).
