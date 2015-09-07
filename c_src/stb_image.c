@@ -60,7 +60,7 @@ load(ErlNifEnv* env, void** priv, ERL_NIF_TERM load_info)
 static ERL_NIF_TERM
 internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    ERL_NIF_TERM result;
+    ERL_NIF_TERM binary, result;
     FILE *f = NULL;
 
     if (argc != 2) {
@@ -97,11 +97,23 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     /* Copy the buffer over so that Erlang owns the binary. */
     size_t size = x * y * comp;
-    unsigned char *erl_buffer = enif_make_new_binary(env, size, &result);
+    unsigned char *erl_buffer = enif_make_new_binary(env, size, &binary);
+    if (erl_buffer == NULL) {
+        result = mk_error(env, "nif");
+        goto finalize;
+    }
+
     memcpy(erl_buffer, buffer, size);
     stbi_image_free(buffer);
 
-    result = enif_make_tuple2(env, enif_make_atom(env, "ok"), result);
+    /* Return: {ok, {X, Y, Components, Binary}}. */
+    result = enif_make_tuple2(env, mk_atom(env, "ok"),
+            enif_make_tuple4(env,
+                enif_make_int(env, x),
+                enif_make_int(env, y),
+                enif_make_int(env, comp),
+                binary
+                ));
 
 finalize:
     if (f != NULL) {
