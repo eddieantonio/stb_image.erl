@@ -1,5 +1,7 @@
 # stb_image.erl
 
+[![Build Status](https://travis-ci.org/eddieantonio/stb_image.erl.svg?branch=master)](https://travis-ci.org/eddieantonio/stb_image.erl)
+
 Erlang interface to [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h).
 
 # Install
