@@ -75,6 +75,12 @@ eacces_test() ->
      end
     }.
 
+% Try to open a directory.
+directort_test() ->
+    % On Linux and OS X, opening a directory is a-okay 👌
+    % So the error will be caught in stbi_load_from_file.
+    ?assertMatch({error, {stb_image, _}}, stb_image:load(image_dir())).
+
 %% Utils.
 
 filename_for(Name) -> filename_for(Name, true).
