@@ -1,6 +1,6 @@
 {application, stb_image, [
     {description, "NIF for stb_image"},
-    {vsn, "1.0.0"},
+    {vsn, "0.2.0"},
     {registered, []},
     {applications, [kernel, stdlib]},
     {env, []}
