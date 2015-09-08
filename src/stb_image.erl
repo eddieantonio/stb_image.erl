@@ -2,15 +2,19 @@
 -export([load/1, load/2]).
 -on_load(init/0).
 
--type req_comp() :: default | grey | grey_alpha | rgb | rgb_alpha.
 -type stb_image() :: {
         X :: non_neg_integer(),
         Y :: non_neg_integer(),
-        NComp :: non_neg_integer(),
+        NComp :: components(),
         Data :: binary()
        }.
+-type req_comp() :: req_comp_atom() | components().
+-type req_comp_atom() :: default | grey | grey_alpha | rgb | rgb_alpha.
+-type components() :: 0 | 1 | 2 | 3 | 4.
+-type load_options() :: req_comp() | [{depth, req_comp()}].
+-type load_error_reason() :: atom() | {stb_image, string()}.
 -type load_return() :: {ok, stb_image()} |
-                       {error, Reason :: atom()}.
+                       {error, Reason :: load_error_reason()}.
 
 % The name of the application we're writing. This is the name
 % used for the Erlang .app file.
@@ -34,6 +38,7 @@
 
 load(Filename) -> load(Filename, []).
 
+-spec load(Filename :: iolist(), Options :: load_options()) -> load_return().
 load(Filename, Depth) when is_integer(Depth) or is_atom(Depth) ->
     load(Filename, [{depth, Depth}]);
 load(Filename, Options) ->
@@ -50,20 +55,20 @@ load(Filename, Options) ->
 % erlang:load_nif/2 matches the return specification for -on_load()
 % functions.
 
--spec internal_load(Filename :: binary(), Depth :: non_neg_integer()) ->
+-spec internal_load(Filename :: binary(), Depth :: components()) ->
     load_return().
 internal_load(_Filename, _DesiredDepth) ->
     erlang:nif_error({not_loaded, [{module, ?MODULE}, {line, ?LINE}]}).
 
 % https://github.com/nothings/stb/blob/master/stb_image.h#L394
--spec req_comp(non_neg_integer() | req_comp()) -> non_neg_integer().
+-spec req_comp(req_comp()) -> components().
 req_comp(X) when is_integer(X),
                  X >= 0, X =< 4 -> X;
 req_comp(default)     -> 0;
 req_comp(grey)        -> 1;
 req_comp(grey_alpha)  -> 2;
 req_comp(rgb)         -> 3;
-req_comp(rgb_alpha)  -> 4;
+req_comp(rgb_alpha)   -> 4;
 req_comp(_) -> exit(badarg).
 
 init() ->
