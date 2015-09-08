@@ -13,7 +13,8 @@ char * erl_errno_id(int error);
 // Based on https://github.com/davisp/nif-examples/tree/master/apps/skeleton
 // NIFs are awesome.
 
-/* Adapted from:
+/*
+ * The following helpers adapted from:
  * https://github.com/davisp/nif-examples/blob/master/apps/termsend/c_src/termsend.c
  */
 
@@ -33,21 +34,28 @@ mk_atom(ErlNifEnv* env, const char* atom)
     return ret;
 }
 
+static ERL_NIF_TERM
+mk_prefixed_pair(ErlNifEnv *env, const char *atom, ERL_NIF_TERM term)
+{
+    return enif_make_tuple2(env, mk_atom(env, atom), term);
+}
+
+/*
+ * Makes an error tuple, {error, Reason}.
+ */
+static ERL_NIF_TERM
+mk_error_term(ErlNifEnv* env, ERL_NIF_TERM term)
+{
+    return mk_prefixed_pair(env, "error", term);
+}
+
 /*
  * Makes an error tuple, {error, Reason} where Reason is an atom.
  */
 static ERL_NIF_TERM
 mk_error(ErlNifEnv* env, const char* mesg)
 {
-    return enif_make_tuple2(env, mk_atom(env, "error"), mk_atom(env, mesg));
-}
-
-// Return value of 0 indicates success.
-// Docs: http://erlang.org/doc/man/erl_nif.html#load
-static int
-load(ErlNifEnv* env, void** priv, ERL_NIF_TERM load_info)
-{
-    return 0;
+    return mk_error_term(env, mk_atom(env, mesg));
 }
 
 // Docs: http://erlang.org/doc/man/erl_nif.html#ErlNifFunc
@@ -91,7 +99,14 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     /* Error checking! */
     if (buffer == NULL || comp == 0) {
         /* Note! Not thread-safe! */
-        result = mk_error(env, stbi_failure_reason());
+        result = mk_error_term(
+            env,
+            mk_prefixed_pair(
+                env,
+                "stb_image",
+                enif_make_string(env, stbi_failure_reason(), ERL_NIF_LATIN1)
+            )
+        );
         goto finalize;
     }
 
@@ -107,13 +122,17 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     stbi_image_free(buffer);
 
     /* Return: {ok, {X, Y, NComponents, Binary}}. */
-    result = enif_make_tuple2(env, mk_atom(env, "ok"),
-            enif_make_tuple4(env,
-                enif_make_int(env, x),
-                enif_make_int(env, y),
-                enif_make_int(env, comp),
-                binary
-                ));
+    result = mk_prefixed_pair(
+        env,
+        "ok",
+        enif_make_tuple4(
+            env,
+            enif_make_int(env, x),
+            enif_make_int(env, y),
+            enif_make_int(env, comp),
+            binary
+        )
+    );
 
 finalize:
     if (f != NULL) {
@@ -131,4 +150,4 @@ static ErlNifFunc nif_funcs[] = {
 // Args: (MODULE, ErlNifFunc funcs[], load, reload, upgrade, unload)
 // Docs: http://erlang.org/doc/man/erl_nif.html#ERL_NIF_INIT
 
-ERL_NIF_INIT(stb_image, nif_funcs, &load, NULL, NULL, NULL);
+ERL_NIF_INIT(stb_image, nif_funcs, NULL, NULL, NULL, NULL);
