@@ -102,4 +102,4 @@ image_dir() ->
 basename_for(any_image) -> "1px_256_table.png";
 basename_for(xterm_table) -> "1px_256_table.png";
 basename_for(nonexistent) -> "non-existent.png";
-basename_for(untouchable) -> "hammer.gif".
+basename_for(untouchable) -> "1px_256_table.png".
