@@ -1,8 +1,7 @@
 #include <assert.h>
-#include <string.h>
-#include <stdio.h>
-
 #include <errno.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "erl_nif.h"
 char * erl_errno_id(int error);
@@ -70,6 +69,9 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ERL_NIF_TERM binary, result;
     FILE *f = NULL;
+    unsigned char *buffer = NULL;
+    int x, y, comp, req_comp;
+    x = y = comp = -1;
 
     if (argc != 2) {
         enif_make_badarg(env);
@@ -83,7 +85,6 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     assert(enif_is_binary(env, name_bin));
     assert(enif_is_number(env, depth));
 
-    int x, y, comp, req_comp;
     enif_get_int(env, depth, &req_comp);
     enif_inspect_binary(env, name_bin, &name);
 
@@ -94,10 +95,10 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return mk_error(env, erl_errno_id(errno));
     }
 
-    unsigned char *buffer = stbi_load_from_file(f, &x, &y, &comp, req_comp);
+    buffer = stbi_load_from_file(f, &x, &y, &comp, req_comp);
 
     /* Error checking! */
-    if (buffer == NULL || comp == 0) {
+    if (buffer == NULL || comp <= 0) {
         /* Note! Not thread-safe! */
         result = mk_error_term(
             env,
@@ -110,6 +111,8 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         goto finalize;
     }
 
+    assert(x > 0 && y > 0);
+
     /* Copy the buffer over so that Erlang owns the binary. */
     size_t size = x * y * comp;
     unsigned char *erl_buffer = enif_make_new_binary(env, size, &binary);
@@ -119,7 +122,6 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     }
 
     memcpy(erl_buffer, buffer, size);
-    stbi_image_free(buffer);
 
     /* Return: {ok, {X, Y, NComponents, Binary}}. */
     result = mk_prefixed_pair(
@@ -137,6 +139,9 @@ internal_load(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 finalize:
     if (f != NULL) {
         fclose(f);
+    }
+    if (buffer != NULL) {
+        stbi_image_free(buffer);
     }
     return result;
 }
